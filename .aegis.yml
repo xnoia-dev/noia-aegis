@@ -1,0 +1,18 @@
+shields:
+  root_detection: true
+  emulator_detection: true
+  debug_detection: true
+  developer_options: true
+  integrity_check: false
+behavior:
+  show_toast: true
+  exit_on_threat: true
+  log_threats: false
+messages:
+  root_detected: "\U0001F513 Root detected!"
+  emulator_detected: "\U0001F5A5\uFE0F Emulator detected!"
+  debug_detected: "\U0001F41B Debug mode detected!"
+  integrity_failed: "\u26A0\uFE0F App integrity check failed!"
+development:
+  skip_in_dev: false
+  verbose: false

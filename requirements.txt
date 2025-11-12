@@ -1,0 +1,5 @@
+click>=8.1.0
+colorama>=0.4.6
+PyYAML>=6.0
+python-dotenv>=1.0.0 
+toml>=0.10.2 

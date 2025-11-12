@@ -1,0 +1,33 @@
+# Noia Aegis - Tool Configuration
+
+[tools]
+# Tool paths (relative to this file or absolute)
+apktool = "tools/apktool.jar"
+uber_apk_signer = "tools/uber-apk-signer.jar"
+
+# Android SDK tools (auto-detected if not specified)
+# apksigner = "C:/Env/Android/Sdk/build-tools/36.0.0/apksigner.bat"
+# zipalign = "C:/Env/Android/Sdk/build-tools/36.0.0/zipalign.exe"
+
+[android_sdk]
+# Android SDK configuration
+root = "C:/Env/Android/Sdk"
+build_tools_version = "36.0.0"  # Use specific version, or "latest" for auto-detect
+
+[paths]
+# Output directories
+output_dir = "output"
+temp_dir = "output"
+apk_output = "output/apks"
+
+[signing]
+# Default signing configuration (can be overridden by signing-config.yml)
+# keystore = "android/test-release.keystore"
+# keystore_password = "env:AEGIS_KS_PASS"  # From .env
+# key_alias = "test-release"
+# key_password = "env:AEGIS_KEY_PASS"      # From .env
+
+[logging]
+# Logging configuration
+verbose = false
+keep_temp = false

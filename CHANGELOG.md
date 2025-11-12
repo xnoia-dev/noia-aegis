@@ -2,8 +2,127 @@
 
 All notable changes to Noia Aegis will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+---
+
+## [1.1.0] - 2025-01-12
+
+### 🎉 Major Release - Custom Keystore Support
+
+This release adds **production keystore signing**, ensuring protected APKs maintain the same signature as the original APK.
+
+### ✨ Added
+
+#### Custom Keystore Signing
+- **Production keystore support** - Sign with your own keystore instead of debug keystore
+- **apksigner integration** - Uses modern apksigner for v2/v3 signature schemes
+- **Auto-detection** - Automatically finds apksigner and zipalign from Android SDK
+- **Multiple build-tools versions** - Smart version detection (supports 34.0.0, 35.0.0, 36.0.0, 36.1.0-rc1)
+- **Semantic versioning** - Properly sorts and selects latest build-tools version
+
+#### Config File Mode
+- **YAML configuration** - Use `signing-config.yml` for complete protection workflow
+- **Environment variables** - Support for `env:VARIABLE_NAME` in config files
+- **Multiple config templates**:
+  - `production-config.yml` - For production builds
+  - `debug-config.yml` - For development/testing
+  - `signing-config.yml` - Default configuration
+- **Config generation** - New command: `aegis init-signing`
+
+#### New CLI Commands
+- **`aegis protect`** - Protect APK using configuration file (recommended)
+- **`aegis init-signing`** - Generate signing configuration templates
+  - `--production` flag for production config
+  - `--debug` flag for debug config
+- **Signature verification** - Automatic signature comparison
+
+#### Enhanced CLI Features
+- **Improved output** - Better formatted messages and progress indicators
+- **Detailed statistics** - Shows APK size increase, processing time, active shields
+- **Signature comparison** - Automatically verifies signature matches original
+- **Production warnings** - Clear warnings when using debug keystore
+
+### 🔧 Improved
+
+#### Signing Process
+- **v1 + v2 + v3 schemes** - Modern APK signature support
+- **Keystore validation** - Validates keystore exists before signing
+- **Better error messages** - Clear error messages for signing failures
+- **Gradle compatibility** - Works with gradle.properties signing configs
+
+#### Tool Detection
+- **Smart path finding** - Searches multiple SDK locations:
+  - `ANDROID_HOME` / `ANDROID_SDK_ROOT` environment variables
+  - `%LOCALAPPDATA%\Android\Sdk` (Windows)
+  - `~/Library/Android/sdk` (macOS)
+  - `~/Android/Sdk` (Linux)
+  - Custom paths: `C:/Env/Android/Sdk`
+- **Build-tools auto-detection** - Finds latest version automatically
+- **Verbose mode** - Shows tool paths and versions when using `-v` flag
+
+#### APK Processing
+- **Better temp file handling** - More reliable cleanup
+- **Output directory structure** - Organized output in `output/apks/`
+- **File naming** - Clear protected APK naming
+
+### 🐛 Fixed
+
+- **jarsigner compatibility** - Removed unsupported `-quiet` flag for older Java versions
+- **Zipalign detection** - Better path detection across platforms
+- **CMake build errors** - Improved handling of React Native build cache issues
+- **Windows path handling** - Better support for Windows-style paths
+- **Signature scheme compatibility** - Fixed "Target SDK requires v2 scheme" errors
+
+### 📚 Documentation
+
+- **Complete README.md** - Comprehensive usage guide with examples
+- **Config file examples** - Multiple configuration templates
+- **Troubleshooting guide** - Common issues and solutions
+- **Signature verification guide** - How to verify APK signatures
+
+### 🔐 Security
+
+- **Production-ready signing** - Same signature as original APK
+- **Play Store compatible** - Can update existing apps
+- **API keys preserved** - Firebase, Google Maps, etc. continue working
+- **Certificate matching** - SHA-256 digest verification
+
+### ⚠️ Breaking Changes
+
+None - backward compatible with v1.0.0
+
+### 📦 Dependencies
+
+No new dependencies required for core functionality
+
+### 🎯 Upgrade Notes
+
+**From v1.0.0 to v1.1.0:**
+
+1. Update installation:
+```bash
+   pip install -e . --upgrade
+```
+
+2. Generate new config file (recommended):
+```bash
+   aegis init-signing production-config.yml --production
+```
+
+3. Use new `protect` command:
+```bash
+   aegis protect production-config.yml
+```
+
+**Old command still works:**
+```bash
+aegis shield app.apk --keystore key.jks --ks-pass xxx --ks-alias xxx --key-pass xxx
+```
+
+### 🙏 Acknowledgments
+
+- **Android Build Tools** - apksigner, zipalign
+- **Community feedback** - Testing and bug reports
+- **Tested with** - React Native 0.75+, Android SDK 24-36
 
 ---
 
@@ -13,229 +132,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 First stable release of Noia Aegis - APK Security Injection Tool.
 
-### ✨ Added
+### ✨ Features
 
-#### Core Features
-- **CLI Interface** - Complete command-line interface with 4 main commands
-  - `aegis shield` - Protect APK with security shields
-  - `aegis scan` - Analyze APK structure
-  - `aegis init-config` - Generate configuration file
-  - `aegis about` - Display tool information
-
-#### Security Shields
-- **Root Detection** - Detects rooted Android devices
-  - Checks for su binary in multiple locations
-  - Detects Magisk and SuperSU
-  - Verifies build tags
-- **Emulator Detection** - Prevents running on Android emulators
-  - Checks Build.FINGERPRINT, MODEL, BRAND, HARDWARE
-  - Detects Genymotion and generic emulators
-- **Debug Detection** - Blocks debugging attempts
-  - Detects connected debuggers
-  - Checks ApplicationInfo debuggable flag
-  - Monitors debug waiting state
-- **Developer Options Detection** - Detects developer mode
-  - Checks ADB enabled status
-  - Detects development settings enabled
-  - Monitors stay awake settings
-
-#### Configuration System
-- **YAML Configuration** - Flexible configuration via `.aegis.yml`
-  - Enable/disable individual shields
-  - Customize behavior (toast messages, exit on threat)
-  - Custom threat messages
-  - Development mode options
-- **Multiple Config Locations** - Auto-loads from:
-  - `.aegis.yml`
-  - `.aegis.yaml`
-  - `aegis.yml`
-  - `aegis.yaml`
-- **Custom Config Support** - Use custom config via `-c` option
-
-#### React Native Support
-- **Auto-Detection** - Automatically detects React Native apps
-- **Smart Injection** - Adapts injection strategy for RN apps
-- **Application Class Handling** - Works with ReactApplication
-- **MainActivity Support** - Creates onCreate if not present
-
-#### APK Processing
-- **Decompilation** - Uses apktool for APK decompilation
-- **Smali Injection** - Injects security checks via Smali bytecode
-- **Recompilation** - Rebuilds modified APK
-- **Auto-Signing** - Signs APK with debug certificate
-- **Cleanup** - Automatic cleanup of temporary files
-
-#### CLI Features
-- **Colored Output** - Beautiful colored terminal output
-- **ASCII Logo** - Stylish Noia Aegis branding
-- **Verbose Mode** - Detailed output with `-v` flag
-- **Progress Indicators** - Clear step-by-step progress
-- **Error Handling** - Comprehensive error messages
-- **Keep Temp Option** - `--keep-temp` for debugging
-
-#### Analysis Features
-- **APK Scanning** - Analyze APK structure without injection
-- **Type Detection** - Identifies Native Android vs React Native
-- **Activity Discovery** - Lists all activities in APK
-- **Package Information** - Extracts package name and metadata
-- **Injection Point Detection** - Identifies optimal injection locations
-
-### 🏗️ Architecture
-
-#### Package Structure
-```
-noia_aegis/
-├── cli.py              - CLI interface
-├── core/
-│   ├── processor.py    - APK processing (decompile/recompile/sign)
-│   ├── injector.py     - Shield injection logic
-│   ├── analyzer.py     - APK analysis
-│   ├── verifier.py     - Protection verification
-│   └── config.py       - Configuration management
-└── templates/smali/    - Security shield implementations
-    ├── AegisCore.smali
-    ├── RootShield.smali
-    ├── EmulatorShield.smali
-    ├── DebugShield.smali
-    └── DeveloperShield.smali
-```
-
-#### Dependencies
-- **click** >= 8.1.0 - CLI framework
-- **colorama** >= 0.4.6 - Terminal colors
-- **PyYAML** >= 6.0 - YAML parsing
-
-#### External Tools (Required)
-- **apktool.jar** - APK decompilation
-- **uber-apk-signer.jar** - APK signing
-- **Java 8+** - Required for tools
-
-### 📝 Technical Details
-
-#### Injection Strategy
-1. Decompile APK to Smali bytecode
-2. Analyze app structure and detect type
-3. Copy shield classes to `com/noiaegis/` package
-4. Generate dynamic `AegisCore.smali` based on config
-5. Inject `AegisCore.protect()` to Application/Activity onCreate
-6. Recompile and sign modified APK
-
-#### Shield Implementation
-- **Smali Bytecode** - Native Android bytecode level
-- **Zero Dependencies** - No runtime dependencies in target app
-- **Minimal Overhead** - Checks run only at app startup
-- **Configurable** - Each shield can be enabled/disabled independently
-
-#### Supported Android Versions
-- **Minimum SDK:** 21 (Android 5.0)
-- **Target SDK:** 34 (Android 14)
-- **Tested on:** Android 5.0 - 14
-
-### 🔧 Configuration Options
-
-#### Shield Configuration
-```yaml
-shields:
-  root_detection: true
-  emulator_detection: true
-  debug_detection: true
-  developer_options: true
-  integrity_check: false  # Coming in v2.0
-```
-
-#### Behavior Configuration
-```yaml
-behavior:
-  show_toast: true        # Show warning toast
-  exit_on_threat: true    # Exit app on threat
-  log_threats: false      # Log to logcat
-```
-
-#### Message Customization
-```yaml
-messages:
-  root_detected: "🔓 Root detected!"
-  emulator_detected: "🖥️ Emulator detected!"
-  debug_detected: "🐛 Debug mode detected!"
-  developer_detected: "⚙️ Developer options enabled!"
-```
-
-### 📚 Documentation
-- **README.md** - Complete usage guide
-- **CHANGELOG.md** - Version history
-- **LICENSE** - MIT License
-- **examples/config.yml** - Configuration examples
-
-### 🧪 Testing
-- Tested on React Native apps
-- Tested on Native Android apps
-- Verified on rooted devices
-- Verified on emulators
-- Verified with debuggers attached
-
-### 🎯 Known Limitations
-- Requires Java 8+ installed
-- Debug signature only (not production-ready signing)
-- Some heavily obfuscated APKs may fail to decompile
-- Cannot modify APKs with custom protection (e.g., DexGuard)
-
-### 🔜 Future Plans (v2.0)
-- String Encryption
-- SSL Pinning Injection
-- Code Obfuscation
-- Integrity Verification
-- Anti-Tampering
-- Screen Protection
-
----
-
-## [Unreleased]
-
-### Planned for v1.1.0
-- [ ] Auto-download tools script
-- [ ] Progress bars (tqdm)
-- [ ] Protection report (JSON output)
-- [ ] Backup original APK option
-- [ ] Better error messages
-- [ ] Web dashboard (optional)
-
-### Planned for v2.0.0
-- [ ] String Encryption shield
-- [ ] SSL Pinning injection
-- [ ] Basic code obfuscation
-- [ ] APK integrity verification
-- [ ] Anti-tampering detection
-- [ ] Screenshot prevention
-
-### Planned for v3.0.0
-- [ ] Native library protection
-- [ ] Advanced obfuscation
-- [ ] RASP (Runtime Application Self-Protection)
-- [ ] Memory protection
-- [ ] Anti-hooking (Frida/Xposed)
-- [ ] Batch processing
-- [ ] GUI interface
-
----
-
-## Version History
-
-### [1.0.0] - 2025-01-12
-- Initial stable release
-- Core security shields implemented
-- Configuration system
-- React Native support
-- CLI interface
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
-
-## License
-
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+- Root Detection
+- Emulator Detection
+- Debug Detection
+- Developer Options Detection
+- React Native Support
+- Configurable shields via `.aegis.yml`
+- Debug keystore signing (uber-apk-signer)
 
 ---
 

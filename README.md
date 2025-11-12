@@ -1,10 +1,10 @@
 # 🛡️ Noia Aegis
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/noia-aegis)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/arr-code/noia-aegis)
 [![Python](https://img.shields.io/badge/python-3.7+-green.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
-**Noia Aegis** is an APK security injection tool that protects Android applications from common security threats including root detection, emulator detection, debugging attempts, and developer options.
+**Noia Aegis** is an APK security injection tool that adds runtime protection to your Android apps while maintaining your original production signature.
 
 Named after Noia, protected with love 💖
 
@@ -12,581 +12,327 @@ Named after Noia, protected with love 💖
 
 ## ✨ Features
 
-- 🔐 **Root Detection** - Blocks rooted devices
-- 🖥️ **Emulator Detection** - Prevents running on emulators
-- 🐛 **Debug Detection** - Blocks debugging attempts
-- ⚙️ **Developer Options Detection** - Detects USB debugging
-- ⚛️ **React Native Support** - Works seamlessly with React Native apps
-- 🎛️ **Configurable Shields** - Enable/disable specific protections
-- 🚀 **Easy to Use** - Simple CLI interface
-- 📝 **YAML Configuration** - Flexible configuration system
+- 🔐 **Root Detection** - Block rooted devices
+- 🖥️ **Emulator Detection** - Prevent running on emulators
+- 🐛 **Debug Detection** - Block debuggers
+- ⚙️ **Developer Options Detection** - Detect USB debugging
+- 🔑 **Production Signing** - Keep your original APK signature
+- ⚛️ **React Native Support** - Works seamlessly with RN apps
+- 📝 **Easy Configuration** - Simple YAML config files
 
 ---
 
-## 📋 Requirements
+## 📦 Installation
 
-- **Python 3.7+**
-- **Java 8+** (for apktool and signing)
-- **Tools** (included in `tools/` directory):
-  - apktool.jar
-  - uber-apk-signer.jar
+### Requirements
+- Python 3.7+
+- Java 8+
+- Android SDK (for apksigner/zipalign)
 
----
-
-## 🚀 Installation
-
-### 1. Clone Repository
+### Install
 ```bash
 git clone https://github.com/arr-code/noia-aegis.git
 cd noia-aegis
-```
-
-### 2. Install Dependencies
-```bash
-# Create virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
-
-# Install package
 pip install -e .
 ```
 
-### 3. Download Tools
+### Download Tools
 
-Download and place in `tools/` directory:
+Place these files in `tools/` directory:
 - [apktool.jar](https://github.com/iBotPeaches/Apktool/releases)
 - [uber-apk-signer.jar](https://github.com/patrickfav/uber-apk-signer/releases)
 
-Or use the provided script:
-```bash
-# Coming soon: auto-download script
-```
-
 ---
 
-## 📖 Quick Start
+## 🚀 Quick Start
 
-### Generate Default Configuration
+### Step 1: Generate Config
 ```bash
-aegis init-config
+aegis init-signing production-config.yml --production
 ```
 
-This creates `.aegis.yml` in your current directory.
+### Step 2: Edit Config
 
-### Protect Your APK
-```bash
-aegis shield app.apk -o protected.apk
-```
-
-### Install Protected APK
-```bash
-adb install protected.apk
-```
-
----
-
-## 🎛️ Configuration
-
-Edit `.aegis.yml` to customize protection:
+Edit `production-config.yml`:
 ```yaml
-# Shield Configuration
-shields:
-  root_detection: true        # Detect rooted devices
-  emulator_detection: true    # Detect emulators
-  debug_detection: true       # Detect debuggers
-  developer_options: true     # Detect developer mode
+apk:
+  input: "android/app/build/outputs/apk/release/app-release.apk"
+  output: "app-protected.apk"
 
-# Behavior
-behavior:
-  show_toast: true           # Show warning message
-  exit_on_threat: true       # Exit app when threat detected
-  log_threats: false         # Log to logcat
+signing:
+  use_custom: true
+  keystore: "android/test-release.keystore"
+  keystore_password: "your_password"
+  key_alias: "your_alias"
+  key_password: "your_password"
 
-# Custom Messages
-messages:
-  root_detected: "🔓 Root detected!"
-  emulator_detected: "🖥️ Emulator detected!"
-  debug_detected: "🐛 Debug mode detected!"
-  developer_detected: "⚙️ Developer options enabled!"
-```
-
-### Configuration Examples
-
-**Example 1: Only Root Detection**
-```yaml
 shields:
   root_detection: true
-  emulator_detection: false
-  debug_detection: false
-  developer_options: false
-```
-
-**Example 2: All Except Emulator (for testing)**
-```yaml
-shields:
-  root_detection: true
-  emulator_detection: false   # Disabled for emulator testing
+  emulator_detection: true
   debug_detection: true
   developer_options: true
 ```
 
-**Example 3: Custom Messages (Indonesian)**
+### Step 3: Protect
+```bash
+aegis protect production-config.yml
+```
+
+### Step 4: Install & Test
+```bash
+adb install output/apks/app-protected-aligned-signed.apk
+```
+
+**Done!** ✅
+
+---
+
+## 📖 Usage
+
+### Config File Mode (Recommended)
+```bash
+# Production build
+aegis protect production-config.yml
+
+# Debug build
+aegis protect debug-config.yml
+```
+
+### Command Line Mode
+```bash
+aegis shield app.apk \
+  --keystore release.keystore \
+  --ks-pass "password" \
+  --ks-alias "release" \
+  --key-pass "password" \
+  -o protected.apk
+```
+
+### Other Commands
+```bash
+# Generate configs
+aegis init-signing production-config.yml --production
+aegis init-config  # Generate .aegis.yml
+
+# Scan APK
+aegis scan app.apk
+
+# Show info
+aegis about
+aegis --help
+```
+
+---
+
+## 🔧 Configuration
+
+### Shield Configuration
 ```yaml
+shields:
+  root_detection: true       # Detect rooted devices
+  emulator_detection: true   # Detect emulators
+  debug_detection: true      # Detect debuggers
+  developer_options: true    # Detect developer mode
+```
+
+### Behavior
+```yaml
+behavior:
+  show_toast: true          # Show warning message
+  exit_on_threat: true      # Exit app on threat
+  log_threats: false        # Log to logcat
+```
+
+### Custom Messages
+```yaml
+messages:
+  root_detected: "🔓 Device tidak aman!"
+  emulator_detected: "🖥️ Tidak dapat berjalan di emulator!"
+  debug_detected: "🐛 Debug mode terdeteksi!"
+  developer_detected: "⚙️ Developer options harus dimatikan!"
+```
+
+---
+
+## 🔍 Signature Verification
+
+Verify your protected APK has the same signature as original:
+```bash
+# Original APK
+apksigner verify --print-certs app-release.apk
+
+# Protected APK
+apksigner verify --print-certs app-protected.apk
+
+# SHA-256 should be IDENTICAL ✅
+```
+
+---
+
+## 🎯 Use Cases
+
+### Production Release
+- ✅ Keep original signature
+- ✅ Can update existing apps
+- ✅ Ready for Play Store
+- ✅ API keys work (Firebase, Google Maps, etc.)
+
+### Development/Testing
+- ✅ Test shields on emulator
+- ✅ Debug mode allowed
+- ✅ Quick iteration
+
+---
+
+## 🛡️ How It Works
+```
+Original APK
+    ↓
+Decompile (apktool)
+    ↓
+Inject Security Shields (Smali)
+    ↓
+Recompile (apktool)
+    ↓
+Sign with Your Keystore (apksigner)
+    ↓
+Protected APK (Same Signature!)
+```
+
+---
+
+## 📋 Configuration Templates
+
+### Production Config
+```yaml
+# production-config.yml
+apk:
+  input: "android/app/build/outputs/apk/release/app-release.apk"
+  output: "app-protected.apk"
+
+signing:
+  use_custom: true
+  keystore: "release.keystore"
+  keystore_password: "env:KEYSTORE_PASSWORD"  # From environment
+  key_alias: "release"
+  key_password: "env:KEY_PASSWORD"
+
 shields:
   root_detection: true
   emulator_detection: true
   debug_detection: true
   developer_options: true
 
-messages:
-  root_detected: "⚠️ Perangkat tidak aman! Aplikasi akan ditutup."
-  emulator_detected: "⚠️ Aplikasi tidak dapat berjalan di emulator."
-  debug_detected: "⚠️ Mode debug terdeteksi."
-  developer_detected: "⚠️ Developer options terdeteksi."
+options:
+  verbose: false
 ```
 
----
+### Debug Config
+```yaml
+# debug-config.yml
+apk:
+  input: "android/app/build/outputs/apk/debug/app-debug.apk"
+  output: "app-debug-protected.apk"
 
-## 💻 CLI Commands
+signing:
+  use_custom: false  # Use debug keystore
 
-### `aegis shield`
-
-Protect APK with Aegis shields.
-```bash
-aegis shield <apk_path> [OPTIONS]
-
-Options:
-  -o, --output PATH      Output APK filename
-  -c, --config PATH      Custom config file path
-  -v, --verbose          Verbose output
-  --keep-temp            Keep temporary files
-  --no-logo              Hide logo
-```
-
-**Examples:**
-```bash
-# Basic usage
-aegis shield app.apk
-
-# Custom output name
-aegis shield app.apk -o protected-app.apk
-
-# Use custom config
-aegis shield app.apk -c custom-config.yml
-
-# Verbose mode
-aegis shield app.apk -v
-
-# Keep temporary files for debugging
-aegis shield app.apk --keep-temp
-```
-
-### `aegis scan`
-
-Analyze APK structure without injection.
-```bash
-aegis scan <apk_path>
-```
-
-**Example:**
-```bash
-aegis scan app.apk
-```
-
-Output:
-```
-🔍 Scanning: app.apk
-
-Results:
-  • Type: React Native
-  • Package: com.example.app
-  • Activities: 3
-  • Application Class: Yes
-
-Activities:
-  • smali/com/example/MainActivity.smali
-  • smali/com/example/SettingsActivity.smali
-  • ...
-```
-
-### `aegis init-config`
-
-Generate default configuration file.
-```bash
-aegis init-config [output_path]
-```
-
-**Examples:**
-```bash
-# Generate .aegis.yml in current directory
-aegis init-config
-
-# Generate with custom name
-aegis init-config my-config.yml
-```
-
-### `aegis about`
-
-Display information about Noia Aegis.
-```bash
-aegis about
-```
-
----
-
-## 🔒 How It Works
-
-### 1. Decompilation
-APK is decompiled to Smali bytecode using apktool.
-
-### 2. Analysis
-Analyzes app structure:
-- Detects app type (Native Android / React Native)
-- Finds Application class
-- Locates MainActivity
-- Identifies injection points
-
-### 3. Shield Injection
-Injects security checks based on configuration:
-- Copies shield classes to `com/noiaegis/` package
-- Generates dynamic `AegisCore.smali` based on enabled shields
-- Injects `AegisCore.protect()` call to Application/Activity onCreate
-
-### 4. Recompilation & Signing
-- Recompiles modified Smali to APK
-- Signs APK with debug key
-- Output: `protected-apk-aligned-debugSigned.apk`
-
----
-
-## 🛡️ Security Shields
-
-### Root Detection
-
-Detects rooted Android devices by checking:
-- `/system/bin/su`
-- `/system/xbin/su`
-- `/sbin/su`
-- Magisk/SuperSU presence
-- Build tags (test-keys)
-
-**File:** `RootShield.smali`
-
-### Emulator Detection
-
-Detects Android emulators by checking:
-- Build.FINGERPRINT (contains "generic")
-- Build.MODEL (contains "sdk", "Emulator")
-- Build.BRAND (contains "generic")
-- Build.HARDWARE (contains "goldfish", "ranchu")
-
-**File:** `EmulatorShield.smali`
-
-### Debug Detection
-
-Detects debugging attempts by checking:
-- `Debug.isDebuggerConnected()`
-- `Debug.waitingForDebugger()`
-- ApplicationInfo debuggable flag
-
-**File:** `DebugShield.smali`
-
-### Developer Options Detection
-
-Detects developer mode by checking:
-- ADB enabled (`adb_enabled`)
-- Development settings enabled
-- Stay awake while charging
-
-**File:** `DeveloperShield.smali`
-
----
-
-## 📊 Project Structure
-```
-noia-aegis/
-├── noia_aegis/
-│   ├── __init__.py
-│   ├── cli.py                    # CLI interface
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── processor.py          # APK decompile/recompile/sign
-│   │   ├── injector.py           # Shield injection logic
-│   │   ├── analyzer.py           # APK analysis
-│   │   ├── verifier.py           # Protection verification
-│   │   └── config.py             # Configuration management
-│   ├── shields/
-│   │   └── (future: Python shield implementations)
-│   ├── templates/
-│   │   └── smali/
-│   │       ├── AegisCore.smali
-│   │       ├── RootShield.smali
-│   │       ├── EmulatorShield.smali
-│   │       ├── DebugShield.smali
-│   │       └── DeveloperShield.smali
-│   └── utils/
-│       ├── logger.py
-│       └── helpers.py
-├── tools/
-│   ├── apktool.jar               # APK decompiler
-│   └── uber-apk-signer.jar       # APK signer
-├── tests/
-│   ├── test_processor.py
-│   └── test_injector.py
-├── examples/
-│   └── config.yml                # Example configuration
-├── output/                       # Build outputs
-├── .aegis.yml                    # Default config
-├── .gitignore
-├── setup.py
-├── requirements.txt
-├── README.md
-├── CHANGELOG.md
-└── LICENSE
-```
-
----
-
-## 🧪 Testing
-
-### Test on Real Device
-```bash
-# Protect APK
-aegis shield app.apk -o protected.apk
-
-# Install on device
-adb install protected.apk
-
-# Test scenarios:
-# 1. Normal device → App should work
-# 2. Rooted device → App should show toast and exit
-# 3. With debugger attached → App should block
-# 4. Developer options enabled → App should block
-```
-
-### Test on Emulator
-```bash
-# Disable emulator detection for testing
-# Edit .aegis.yml:
 shields:
+  root_detection: false      # Allow everything for testing
   emulator_detection: false
+  debug_detection: false
+  developer_options: false
 
-# Protect and install
-aegis shield app.apk -o protected.apk
-adb install protected.apk
+options:
+  verbose: true
+  keep_temp: true
 ```
 
 ---
 
 ## 🐛 Troubleshooting
 
-### "APK not found" Error
+### APK Not Signed
 
-Make sure the APK path is correct:
-```bash
-aegis shield /path/to/your/app.apk
+**Problem:** `keytool -printcert` says "Not a signed jar file"
+
+**Solution:** Make sure keystore path is correct in config
+```yaml
+signing:
+  keystore: "android/release.keystore"  # ← Check this path
 ```
 
-### "Java not found" Error
+### Signature Mismatch
 
-Install Java 8 or higher:
+**Problem:** Different SHA-256 after protection
+
+**Solution:** Make sure you're using the **same keystore** that signed the original APK
+
+### Build Tools Not Found
+
+**Problem:** `apksigner not found`
+
+**Solution:** Set `ANDROID_HOME` environment variable:
 ```bash
-# Check Java version
-java -version
-
-# Ubuntu/Debian
-sudo apt install openjdk-11-jdk
-
-# macOS
-brew install openjdk@11
-
-# Windows
-# Download from: https://www.oracle.com/java/technologies/downloads/
-```
-
-### "Decompile failed" Error
-
-The APK might be obfuscated or use custom protection. Try:
-```bash
-aegis shield app.apk -v
-```
-
-Check verbose output for details.
-
-### Shields Not Working
-
-1. **Check config:**
-```bash
-   aegis shield app.apk -v
-```
-   
-2. **Verify injection:**
-```bash
-   aegis scan protected.apk
-```
-
-3. **Check logcat:**
-```bash
-   adb logcat | grep -i aegis
+export ANDROID_HOME=/path/to/Android/Sdk  # Linux/Mac
+set ANDROID_HOME=C:\Android\Sdk           # Windows
 ```
 
 ---
 
-## 🗺️ Roadmap
+## 🔜 Roadmap
 
-### Version 1.x (Current)
-- ✅ Root Detection
-- ✅ Emulator Detection
-- ✅ Debug Detection
-- ✅ Developer Options Detection
-- ✅ Configurable shields
-- ✅ React Native support
+### v2.0 (Planned)
+- String Encryption
+- SSL Pinning
+- Integrity Verification
+- Screen Protection
 
-### Version 2.0 (Planned)
-- 🔄 String Encryption
-- 🔄 SSL Pinning Injection
-- 🔄 Code Obfuscation
-- 🔄 Integrity Verification
-- 🔄 Anti-Tampering
-- 🔄 Screen Protection (prevent screenshots)
-
-### Version 3.0 (Future)
-- 🔄 Native Library Protection
-- 🔄 Advanced Obfuscation
-- 🔄 RASP (Runtime Application Self-Protection)
-- 🔄 Memory Protection
-- 🔄 Anti-Hooking (Frida/Xposed detection)
-- 🔄 Batch Processing
+### v3.0 (Future)
+- Anti-Hooking (Frida/Xposed)
+- Native Library Protection
+- Advanced Obfuscation
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these steps:
+Contributions are welcome!
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Development Setup
-```bash
-# Clone your fork
-git clone https://github.com/arr-code/noia-aegis.git
-cd noia-aegis
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate
-
-# Install in development mode
-pip install -e .
-
-# Run tests
-pytest tests/
-```
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- **Apktool** - APK decompilation tool
-- **Uber APK Signer** - APK signing tool
-- **Click** - Python CLI framework
-- **Colorama** - Terminal colors
-- **PyYAML** - YAML parser
-
-Special thanks to the Android reverse engineering community.
-
----
-
-## 👨‍💻 Author
-
-**Rizaldy Setiawan Hasanuddin**
+- **Apktool** - APK decompilation
+- **Uber APK Signer** - APK signing
+- **Android Build Tools** - apksigner, zipalign
+- **Community** - Testing and feedback
 
 ---
 
 ## 📞 Support
 
-- **Issues:** [GitHub Issues](https://github.com/yourusername/noia-aegis/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/yourusername/noia-aegis/discussions)
-- **Email:** your.email@example.com
+- **Issues:** [GitHub Issues](https://github.com/arr-code/noia-aegis/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/arr-code/noia-aegis/discussions)
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
 ## ⚠️ Disclaimer
 
-This tool is for educational and security research purposes. Always ensure you have permission to modify and distribute any APK files. The authors are not responsible for any misuse of this tool.
-
----
-
-## 📸 Screenshots
-
-### CLI Interface
-```
-    _   __      _           ___                _    
-   / | / /___  (_)___ _    /   | ___  ____ _  (_)____
-  /  |/ / __ \/ / __ `/   / /| |/ _ \/ __ `/ / / ___/
- / /|  / /_/ / / /_/ /   / ___ /  __/ /_/ / / (__  ) 
-/_/ |_/\____/_/\__,_/   /_/  |_\___/\__, / /_/____/  
-                                   /____/             
-
-        ⚔️  Divine Shield of Protection ⚔️
-      APK Security Injection Tool v1.0.0
-```
-
-### Protection Process
-```
-======================================================================
-⚔️  AEGIS PROTECTION
-======================================================================
-
-📱 Input: app.apk
-
-[1/5] 🔍 Decompiling APK...
-✓ Decompiled
-
-[2/5] 📊 Analyzing...
-  • Type: React Native
-  • Activities: 3
-  • Application: Yes
-✓ Analysis complete
-
-[3/5] 🛡️  Injecting shields...
-  • Classes added: 5
-  • Injection points: 2
-✓ Shields activated
-
-[4/5] 🔨 Recompiling...
-✓ Recompiled
-
-[5/5] ✍️  Signing...
-✓ Signed
-
-======================================================================
-✅ SUCCESS
-======================================================================
-
-📦 Protected APK: output/apks/app-protected-aligned-debugSigned.apk
-⏱️  Time: 45.32s
-📊 Size: 25.4 MB → 25.6 MB
-
-Active Shields:
-  ✓ Root Detection
-  ✓ Emulator Detection
-  ✓ Debug Detection
-  ✓ Developer Options Detection
-
-Install: adb install output/apks/app-protected-aligned-debugSigned.apk
-```
+This tool is for educational and security research purposes. Always ensure you have permission to modify and distribute any APK files.
 
 ---
 
@@ -594,6 +340,10 @@ Install: adb install output/apks/app-protected-aligned-debugSigned.apk
 
 **⚔️ Protected by the Aegis of Noia 💖**
 
-Made with ❤️ by Rigels Dev
+Made with ❤️ by Rizaldy
+
+[GitHub](https://github.com/arr-code/noia-aegis) • 
+[Issues](https://github.com/arr-code/noia-aegis/issues) • 
+[Changelog](CHANGELOG.md)
 
 </div>

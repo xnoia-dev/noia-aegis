@@ -13,7 +13,7 @@ from noia_aegis.core.env_config import EnvConfig
 
 init(autoreset=True)
 
-__version__ = '1.1.0'
+__version__ = '1.2.0'
 
 LOGO = f"""{Fore.CYAN}
     _   __      _           ___                _    
@@ -799,6 +799,136 @@ options:
         sys.exit(1)
 
 
+# ============================================================================
+# 🆕 NEW: Tool Management Commands (v1.2.0)
+# ============================================================================
+
+@cli.group()
+def tools():
+    """
+    Manage external tools (apktool, uber-apk-signer)
+    
+    Examples:
+        aegis tools list      # List installed tools
+        aegis tools update    # Update to latest versions
+        aegis tools clean     # Remove all tools
+    """
+    pass
+
+
+@tools.command('list')
+def tools_list():
+    """
+    List installed tools and their versions
+    
+    Example:
+        aegis tools list
+    """
+    try:
+        from noia_aegis.core.tool_manager import ToolManager
+        
+        tool_manager = ToolManager(verbose=True)
+        tool_manager.list_tools()
+        
+    except Exception as e:
+        click.echo(f"\n{Fore.RED}❌ Error: {str(e)}{Style.RESET_ALL}\n")
+        sys.exit(1)
+
+
+@tools.command('clean')
+@click.confirmation_option(prompt='Are you sure you want to remove all tools?')
+def tools_clean():
+    """
+    Remove all downloaded tools
+    
+    Example:
+        aegis tools clean
+    """
+    try:
+        from noia_aegis.core.tool_manager import ToolManager
+        
+        click.echo(f"\n{Fore.YELLOW}🗑️  Cleaning tools...{Style.RESET_ALL}\n")
+        
+        tool_manager = ToolManager()
+        tool_manager.clean_tools()
+        
+        click.echo(f"\n{Fore.GREEN}✓ Tools cleaned successfully{Style.RESET_ALL}\n")
+        
+    except Exception as e:
+        click.echo(f"\n{Fore.RED}❌ Error: {str(e)}{Style.RESET_ALL}\n")
+        sys.exit(1)
+
+
+@tools.command('update')
+def tools_update():
+    """
+    Update all tools to latest versions
+    
+    Example:
+        aegis tools update
+    """
+    try:
+        from noia_aegis.core.tool_manager import ToolManager
+        
+        click.echo(f"\n{Fore.CYAN}🔄 Updating tools...{Style.RESET_ALL}\n")
+        
+        tool_manager = ToolManager(verbose=True)
+        tool_manager.update_tools()
+        
+        click.echo(f"\n{Fore.GREEN}✓ All tools updated{Style.RESET_ALL}\n")
+        
+    except Exception as e:
+        click.echo(f"\n{Fore.RED}❌ Error: {str(e)}{Style.RESET_ALL}\n")
+        sys.exit(1)
+
+
+@tools.command('download')
+def tools_download():
+    """
+    Download all required tools (if missing)
+    
+    Example:
+        aegis tools download
+    """
+    try:
+        from noia_aegis.core.tool_manager import ToolManager
+        
+        click.echo(f"\n{Fore.CYAN}📥 Downloading tools...{Style.RESET_ALL}\n")
+        
+        tool_manager = ToolManager(verbose=True)
+        tool_manager.ensure_tools()
+        
+        click.echo(f"\n{Fore.GREEN}✓ All tools ready{Style.RESET_ALL}\n")
+        
+    except Exception as e:
+        click.echo(f"\n{Fore.RED}❌ Error: {str(e)}{Style.RESET_ALL}\n")
+        sys.exit(1)
+
+
+@tools.command('path')
+def tools_path():
+    """
+    Show tools directory path
+    
+    Example:
+        aegis tools path
+    """
+    try:
+        from noia_aegis.core.tool_manager import ToolManager
+        
+        tool_manager = ToolManager()
+        
+        click.echo(f"\n{Fore.CYAN}Tools Directory:{Style.RESET_ALL}")
+        click.echo(f"  {tool_manager.tools_dir}\n")
+        
+    except Exception as e:
+        click.echo(f"\n{Fore.RED}❌ Error: {str(e)}{Style.RESET_ALL}\n")
+        sys.exit(1)
+
+
+# ============================================================================
+
+
 @cli.command()
 def about():
     """
@@ -816,6 +946,7 @@ def about():
   • React Native Support
   • Configurable Shields
   • Custom Keystore Signing
+  • 🆕 Auto-Download Tools (v1.2.0)
 
 {Fore.YELLOW}Commands:{Style.RESET_ALL}
   • shield       - Protect APK (full control)
@@ -823,6 +954,7 @@ def about():
   • scan         - Analyze APK structure
   • init-config  - Generate .aegis.yml
   • init-signing - Generate signing config
+  • tools        - Manage external tools 🆕
 
 {Fore.YELLOW}Version:{Style.RESET_ALL} {__version__}
 {Fore.YELLOW}Author:{Style.RESET_ALL} Rizaldy
@@ -831,8 +963,13 @@ def about():
   aegis init-signing production-config.yml --production
   aegis protect production-config.yml
 
+{Fore.CYAN}Tool Management:{Style.RESET_ALL}
+  aegis tools list    # List installed tools
+  aegis tools update  # Update to latest
+  aegis tools clean   # Remove all tools
+
 {Fore.CYAN}Documentation:{Style.RESET_ALL}
-  https://github.com/yourusername/noia-aegis
+  https://github.com/arr-code/noia-aegis
 """)
 
 

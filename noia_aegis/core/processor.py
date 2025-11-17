@@ -4,6 +4,7 @@ import sys
 import os
 from pathlib import Path
 from noia_aegis.core.env_config import EnvConfig
+from noia_aegis.core.tool_manager import ToolManager
 
 class APKProcessor:
     def __init__(self, apk_path, verbose=False, env_config=None):
@@ -14,28 +15,36 @@ class APKProcessor:
         # Load environment config
         self.env_config = env_config or EnvConfig()
         
+        # Initialize tool manager
+        self.tool_manager = ToolManager(verbose=verbose)
+        
+        # Ensure tools are available (auto-download if needed)
+        self.tool_paths = self.tool_manager.ensure_tools()
+        
         # Set directories
         output_base = self.env_config.get_output_dir('output')
         self.work_dir = output_base / f"{self.app_name}_work"
         
-        # Set tools directory
-        apktool_path = self.env_config.get_tool_path('apktool')
-        if apktool_path:
-            self.tools_dir = apktool_path.parent
-        else:
-            self.tools_dir = Path(__file__).parent.parent.parent / "tools"
+        # Tools directory from tool manager
+        self.tools_dir = self.tool_manager.tools_dir
         
         if not self.apk_path.exists():
             raise FileNotFoundError(f"APK not found: {apk_path}")
+        
+        if self.verbose:
+            print(f"Using tools from: {self.tools_dir}")
     
     def decompile(self):
         """Decompile APK using apktool"""
         if self.work_dir.exists():
             shutil.rmtree(self.work_dir)
         
+        # Get apktool path from tool manager
+        apktool_path = self.tool_paths['apktool']
+        
         cmd = [
             "java", "-jar",
-            str(self.tools_dir / "apktool.jar"),
+            str(apktool_path),
             "d", str(self.apk_path),
             "-o", str(self.work_dir),
             "-f"
@@ -56,9 +65,12 @@ class APKProcessor:
         output_path = Path("output/apks") / output_name
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
+        # Get apktool path from tool manager
+        apktool_path = self.tool_paths['apktool']
+        
         cmd = [
             "java", "-jar",
-            str(self.tools_dir / "apktool.jar"),
+            str(apktool_path),
             "b", str(self.work_dir),
             "-o", str(output_path)
         ]
@@ -86,9 +98,12 @@ class APKProcessor:
     
     def _sign_with_uber(self, unsigned_apk):
         """Sign APK using uber-apk-signer (debug keystore)"""
+        # Get uber-apk-signer path from tool manager
+        uber_signer_path = self.tool_paths['uber-apk-signer']
+        
         cmd = [
             "java", "-jar",
-            str(self.tools_dir / "uber-apk-signer.jar"),
+            str(uber_signer_path),
             "--apks", str(unsigned_apk),
             "--allowResign"
         ]

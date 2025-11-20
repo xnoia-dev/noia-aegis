@@ -5,12 +5,28 @@ from noia_aegis.core.config import AegisConfig
 
 
 class AegisInjector:
-    def __init__(self, work_dir, verbose=False, config=None):
+    def __init__(self, work_dir, verbose=False, config=None, obfuscate_strings=False):
         self.work_dir = Path(work_dir)
         self.smali_dir = self.work_dir / "smali"
         self.templates_dir = Path(__file__).parent.parent / "templates" / "smali"
         self.verbose = verbose
         self.config = config or AegisConfig()
+        self.obfuscate_strings = obfuscate_strings
+        
+        # Initialize obfuscator if enabled
+        self.obfuscator = None
+        self.string_replacer = None
+        if self.obfuscate_strings:
+            try:
+                from noia_aegis.core.obfuscator import StringObfuscator, SmaliStringReplacer
+                self.obfuscator = StringObfuscator(default_key_length=16)
+                self.string_replacer = SmaliStringReplacer(self.obfuscator)
+                if self.verbose:
+                    print("  🔐 String obfuscation enabled")
+            except ImportError:
+                if self.verbose:
+                    print("  ⚠️  Warning: obfuscator module not found, string obfuscation disabled")
+                self.obfuscate_strings = False
     
     def analyze(self):
         """Analyze APK structure"""
@@ -52,12 +68,106 @@ class AegisInjector:
             if self._inject_or_create_oncreate(main_activity):
                 injection_count += 1
         
+        # 🆕 STRING OBFUSCATION
+        obfuscation_count = 0
+        obfuscated_files = 0
+        if self.obfuscate_strings and self.string_replacer:
+            if self.verbose:
+                print("\n  🔐 Obfuscating strings in smali files...")
+            obfuscation_count, obfuscated_files = self._obfuscate_all_strings()
+        
         return {
             'classes_added': shields_copied,
             'injection_count': injection_count,
             'success_rate': 100 if injection_count > 0 else 0,
-            'enabled_shields': self._get_enabled_shields()
+            'enabled_shields': self._get_enabled_shields(),
+            'obfuscated_strings': obfuscation_count,
+            'obfuscated_files': obfuscated_files,
         }
+    
+    def _obfuscate_all_strings(self):
+        """
+        Obfuscate strings in all smali files (like shield injection)
+        
+        Returns:
+            Tuple of (total_strings_obfuscated, files_modified)
+        """
+        total_obfuscated = 0
+        files_modified = 0
+        
+        # Get all smali files recursively
+        smali_files = list(self.smali_dir.rglob("*.smali"))
+        
+        if self.verbose:
+            print(f"     Found {len(smali_files)} smali files")
+        
+        for smali_file in smali_files:
+            # Skip files that shouldn't be obfuscated
+            if self._should_skip_obfuscation(smali_file):
+                continue
+            
+            try:
+                # Read smali file
+                with open(smali_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Auto-detect and replace sensitive strings
+                modified, count = self.string_replacer.replace_in_smali(content)
+                
+                # Write back if modified
+                if count > 0:
+                    with open(smali_file, 'w', encoding='utf-8') as f:
+                        f.write(modified)
+                    
+                    total_obfuscated += count
+                    files_modified += 1
+                    
+                    if self.verbose:
+                        rel_path = smali_file.relative_to(self.work_dir)
+                        print(f"     ✓ {rel_path}: {count} strings")
+            
+            except Exception as e:
+                if self.verbose:
+                    print(f"     ⚠️  Failed to process {smali_file.name}: {e}")
+                continue
+        
+        if self.verbose and total_obfuscated > 0:
+            print(f"\n     Total: {total_obfuscated} strings obfuscated in {files_modified} files")
+        
+        return total_obfuscated, files_modified
+    
+    def _should_skip_obfuscation(self, smali_file: Path) -> bool:
+        """
+        Check if file should be skipped for obfuscation
+        
+        Skip:
+        - Noia Aegis own classes
+        - Android framework classes
+        - AndroidX classes
+        - Google framework classes
+        """
+        file_path = str(smali_file)
+        
+        # Skip our own classes
+        if 'com/noiaegis' in file_path:
+            return True
+        
+        # Skip framework classes
+        skip_patterns = [
+            'android/',
+            'androidx/',
+            'com/google/android/',
+            'com/facebook/react/',  # React Native framework
+            'java/',
+            'javax/',
+            'kotlin/',
+        ]
+        
+        for pattern in skip_patterns:
+            if pattern in file_path:
+                return True
+        
+        return False
     
     def _get_enabled_shields(self):
         """Get list of enabled shields"""

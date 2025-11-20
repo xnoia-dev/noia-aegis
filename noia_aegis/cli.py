@@ -342,6 +342,7 @@ def protect(config_file, no_logo):
         
         # Create Aegis config from file
         aegis_config = AegisConfig()
+        obfuscate_strings = config.get('obfuscation', {}).get('enabled', False)
         
         # Update shields from config file
         if 'shields' in config:
@@ -369,9 +370,12 @@ def protect(config_file, no_logo):
         work_dir = processor.decompile()
         click.echo(f"{Fore.GREEN}✓ Decompiled{Style.RESET_ALL}\n")
         
+        # Extract obfuscation config (v1.3.0)
+        obfuscate_strings = config.get('obfuscation', {}).get('enabled', False)
+
         # Step 2: Analyze
         click.echo(f"{Fore.CYAN}[2/5] 📊 Analyzing structure...{Style.RESET_ALL}")
-        injector = AegisInjector(work_dir, verbose=verbose, config=aegis_config)
+        injector = AegisInjector(work_dir, verbose=verbose, config=aegis_config, obfuscate_strings=obfuscate_strings)
         analysis = injector.analyze()
         
         click.echo(f"  • Type: {analysis['app_type']}")
@@ -382,9 +386,14 @@ def protect(config_file, no_logo):
         # Step 3: Inject
         click.echo(f"{Fore.CYAN}[3/5] 🛡️  Forging Aegis shields...{Style.RESET_ALL}")
         result = injector.forge_aegis()
-        
+
         click.echo(f"  • Shield classes: {result['classes_added']}")
         click.echo(f"  • Injection points: {result['injection_count']}")
+
+        # Show obfuscation results if enabled
+        if result.get('obfuscated_strings', 0) > 0:
+            click.echo(f"  • Obfuscated strings: {result['obfuscated_strings']} in {result['obfuscated_files']} files")
+
         click.echo(f"{Fore.GREEN}✓ Shields activated{Style.RESET_ALL}\n")
         
         # Step 4: Recompile
@@ -430,6 +439,13 @@ def protect(config_file, no_logo):
         click.echo(f"\n{Fore.CYAN}🛡️  Active Shields:{Style.RESET_ALL}")
         for shield in result['enabled_shields']:
             click.echo(f"{Fore.GREEN}  ✓ {shield}{Style.RESET_ALL}")
+        
+        # Show obfuscation summary
+        if result.get('obfuscated_strings', 0) > 0:
+            click.echo(f"\n{Fore.CYAN}🔐 String Obfuscation:{Style.RESET_ALL}")
+            click.echo(f"{Fore.GREEN}  ✓ {result['obfuscated_strings']} strings obfuscated{Style.RESET_ALL}")
+            click.echo(f"{Fore.GREEN}  ✓ {result['obfuscated_files']} files modified{Style.RESET_ALL}")
+            click.echo(f"{Fore.CYAN}  Protection against static analysis ✓{Style.RESET_ALL}")
         
         if use_custom and keystore_path:
             click.echo(f"\n{Fore.GREEN}✓ Signed with production keystore{Style.RESET_ALL}")
@@ -677,6 +693,9 @@ shields:
   developer_options: true
   integrity_check: false
 
+obfuscation:
+  enable: true
+  
 behavior:
   show_toast: true
   exit_on_threat: true
@@ -751,6 +770,9 @@ shields:
   debug_detection: true
   developer_options: true
   integrity_check: false
+
+obfuscation:
+  enable: true
 
 behavior:
   show_toast: true

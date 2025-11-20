@@ -1,0 +1,45 @@
+# Noia Aegis - Configuration File
+# Use with: aegis protect signing-config.yml
+
+apk:
+  input: "./apks/app-release.apk"
+  output: "obf-app-protected.apk"
+
+signing:
+  # Set to true for production, false for debug
+  use_custom: true
+  
+  # Keystore configuration (required if use_custom: true)
+  keystore: "./apks/test-release.keystore"
+  keystore_password: "password123"
+  key_alias: "test-release"
+  key_password: "password123"
+  
+  # Recommended: Use environment variables for security
+  # keystore_password: "env:AEGIS_KS_PASS"
+  # key_password: "env:AEGIS_KEY_PASS"
+
+shields:
+  root_detection: true
+  emulator_detection: true
+  debug_detection: true
+  developer_options: true
+  integrity_check: false
+
+obfuscation:
+  enable: true
+
+behavior:
+  show_toast: true
+  exit_on_threat: true
+  log_threats: false
+
+messages:
+  root_detected: "🔓 Root detected!"
+  emulator_detected: "🖥️ Emulator detected!"
+  debug_detected: "🐛 Debug mode detected!"
+  developer_detected: "⚙️ Developer options enabled!"
+
+options:
+  verbose: false
+  keep_temp: false

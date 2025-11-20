@@ -14,6 +14,9 @@ class AegisConfig:
             'developer_options': True,
             'integrity_check': False,
         },
+        'obfuscation': {
+            'enable': True
+        },
         'behavior': {
             'show_toast': True,
             'exit_on_threat': True,

@@ -13,7 +13,7 @@ from noia_aegis.core.env_config import EnvConfig
 
 init(autoreset=True)
 
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 
 LOGO = f"""{Fore.CYAN}
     _   __      _           ___                _    
@@ -822,7 +822,7 @@ options:
 
 
 # ============================================================================
-# 🆕 NEW: Tool Management Commands (v1.2.0)
+# 🆕 NEW: Tool Management Commands (v1.3.0)
 # ============================================================================
 
 @cli.group()

@@ -1,7 +1,188 @@
 # 🛡️ Noia Aegis
 
 [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/arr-code/noia-aegis)
+[![Python](https://img.shields.io/badge/python-3.7+-green.svg)](https://www.python.org/)# 🛡️ Noia Aegis
+
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/arr-code/noia-aegis)
 [![Python](https://img.shields.io/badge/python-3.7+-green.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
+
+**Noia Aegis** - APK security injection tool that adds runtime protection while maintaining your original production signature.
+
+Named after Noia, protected with love 💖
+
+---
+
+## ✨ Features
+
+- 🔐 **Root Detection** - Block rooted devices
+- 🖥️ **Emulator Detection** - Prevent running on emulators
+- 🐛 **Debug Detection** - Block debuggers
+- ⚙️ **Developer Options Detection** - Detect USB debugging
+- 🔒 **String Obfuscation** - 🆕 Protect API keys, tokens, URLs (v1.3.0)
+- 🔑 **Production Signing** - Keep your original APK signature
+- ⚛️ **React Native Support** - Works seamlessly with RN apps
+- 🛠️ **Auto-Download Tools** - No manual setup needed
+
+---
+
+## 🆕 What's New in v1.3.0
+
+### String Obfuscation
+Protect hardcoded secrets with XOR-based obfuscation:
+
+```yaml
+obfuscation:
+  enabled: true
+```
+
+**Results:**
+- ✅ API keys, tokens, URLs obfuscated
+- ✅ Unique encryption keys per APK
+- ✅ Protects against static analysis
+
+---
+
+## 📦 Installation
+
+```bash
+git clone https://github.com/arr-code/noia-aegis.git
+cd noia-aegis
+pip install -r requirements.txt
+pip install -e .
+```
+
+---
+
+## 🚀 Quick Start
+
+### 1. Generate Config
+```bash
+aegis init-signing production-config.yml --production
+```
+
+### 2. Edit Config
+```yaml
+apk:
+  input: "android/app/build/outputs/apk/release/app-release.apk"
+  output: "app-protected.apk"
+
+signing:
+  use_custom: true
+  keystore: "android/release.keystore"
+  keystore_password: "your_password"
+  key_alias: "your_alias"
+  key_password: "your_password"
+
+shields:
+  root_detection: true
+  emulator_detection: true
+  debug_detection: true
+  developer_options: true
+
+obfuscation:
+  enabled: true  # 🆕 v1.3.0
+```
+
+### 3. Protect
+```bash
+aegis protect production-config.yml
+```
+
+### 4. Done
+```bash
+adb install output/apks/app-protected-aligned-signed.apk
+```
+
+---
+
+## 📖 Usage
+
+```bash
+# Protect APK
+aegis protect production-config.yml
+
+# Scan APK
+aegis scan app.apk
+
+# Tool management
+aegis tools list
+aegis tools update
+
+# Generate config
+aegis init-config
+aegis init-signing config.yml --production
+```
+
+---
+
+## 🔧 Configuration
+
+### Shields
+```yaml
+shields:
+  root_detection: true
+  emulator_detection: true
+  debug_detection: true
+  developer_options: true
+```
+
+### Obfuscation (v1.3.0)
+```yaml
+obfuscation:
+  enabled: true  # XOR-based string encoding
+```
+
+### Behavior
+```yaml
+behavior:
+  show_toast: true
+  exit_on_threat: true
+  log_threats: false
+```
+
+---
+
+## 🔍 Signature Verification
+
+```bash
+# Original APK
+apksigner verify --print-certs app-release.apk
+
+# Protected APK
+apksigner verify --print-certs app-protected.apk
+
+# SHA-256 should be IDENTICAL ✅
+```
+
+---
+
+## 🛡️ How It Works
+
+```
+Original APK → Decompile → Inject Shields → Obfuscate Strings → 
+Recompile → Sign → Protected APK (Same Signature!)
+```
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/arr-code/noia-aegis/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/arr-code/noia-aegis/discussions)
+- **Changelog**: [CHANGELOG.md](CHANGELOG.md)
+
+---
+
+**⚔️ Protected by the Aegis of Noia 💖**
+
+Made with ❤️ by Rizaldy
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
 **Noia Aegis** is an APK security injection tool that adds runtime protection to your Android apps while maintaining your original production signature.
@@ -15,10 +196,13 @@ Named after Noia, protected with love 💖
 - 🔐 **Root Detection** - Block rooted devices
 - 🖥️ **Emulator Detection** - Prevent running on emulators
 - 🐛 **Debug Detection** - Block debuggers
-- ⚙️ **Developer Options Detection** - Detect USB debugging
+- ⚙️ **Developer Options** Detection - Detect USB debugging
+- 🔒 **String Obfuscation** - 🆕 Protect API keys, tokens, URLs (v1.3.0)
 - 🔑 **Production Signing** - Keep your original APK signature
 - ⚛️ **React Native Support** - Works seamlessly with RN apps
 - 📝 **Easy Configuration** - Simple YAML config files
+- 🛠️ **Auto-Download Tools** - No manual setup needed (v1.2.0)
+
 
 ---
 
@@ -36,11 +220,13 @@ cd noia-aegis
 pip install -e .
 ```
 
-### Download Tools
+### Tools Auto-Download
+Noia Aegis automatically downloads required tools on first use! No manual setup needed.
 
-Place these files in `tools/` directory:
-- [apktool.jar](https://github.com/iBotPeaches/Apktool/releases)
-- [uber-apk-signer.jar](https://github.com/patrickfav/uber-apk-signer/releases)
+```bash
+# Optional: Download tools manually
+aegis tools download
+```
 
 ---
 
@@ -56,12 +242,12 @@ aegis init-signing production-config.yml --production
 Edit `production-config.yml`:
 ```yaml
 apk:
-  input: "android/app/build/outputs/apk/release/app-release.apk"
+  input: "./apks/app-release.apk"
   output: "app-protected.apk"
 
 signing:
   use_custom: true
-  keystore: "android/test-release.keystore"
+  keystore: "./apks/test-release.keystore"
   keystore_password: "your_password"
   key_alias: "your_alias"
   key_password: "your_password"
@@ -259,7 +445,7 @@ options:
 **Solution:** Make sure keystore path is correct in config
 ```yaml
 signing:
-  keystore: "android/release.keystore"  # ← Check this path
+  keystore: "./apks/release.keystore"  # ← Check this path
 ```
 
 ### Signature Mismatch
@@ -282,16 +468,17 @@ set ANDROID_HOME=C:\Android\Sdk           # Windows
 
 ## 🔜 Roadmap
 
-### v2.0 (Planned)
-- String Encryption
+### v1.4 (Planned)
+- Custom obfuscation patterns
+- Obfuscation reporting
+- Selective string obfuscation
+
+### v2.0 (Future)
+- Native Library Obfuscation (.so)
 - SSL Pinning
 - Integrity Verification
 - Screen Protection
-
-### v3.0 (Future)
 - Anti-Hooking (Frida/Xposed)
-- Native Library Protection
-- Advanced Obfuscation
 
 ---
 

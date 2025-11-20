@@ -1,8 +1,5 @@
 # 🛡️ Noia Aegis
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/arr-code/noia-aegis)
-[![Python](https://img.shields.io/badge/python-3.7+-green.svg)](https://www.python.org/)# 🛡️ Noia Aegis
-
 [![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/arr-code/noia-aegis)
 [![Python](https://img.shields.io/badge/python-3.7+-green.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)

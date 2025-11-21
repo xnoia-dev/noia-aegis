@@ -34,3 +34,11 @@ tools/
 
 # Keystore
 *.keystore
+*.jks
+
+# Config files (keep .aegis.yml template, ignore user configs)
+signing-config.yml
+*-config.yml
+!.aegis.yml
+aegis.toml
+.env

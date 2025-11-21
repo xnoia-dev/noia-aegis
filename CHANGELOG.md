@@ -4,6 +4,112 @@ All notable changes to Noia Aegis will be documented in this file.
 
 ---
 
+## [1.4.0] - 2025-01-21
+
+### 🦋 Flutter Support, Encoding Fixes & Centralized Version Management
+
+Full Flutter framework compatibility with robust encoding fallback!
+
+### Added
+
+- **Flutter Framework Detection**
+  - Auto-detect Flutter apps via `FlutterActivity`, `libflutter.so`, `flutter_assets`
+  - New method: `_is_flutter()` in `injector.py`
+  - APK analysis now shows "Flutter" app type
+
+- **Multi-Encoding File Reading**
+  - New helper: `_read_smali_file_safe()` with encoding fallback
+  - Tries: UTF-8 → Latin-1 → ISO-8859-1 → CP1252 → UTF-8 (ignore errors)
+  - Solves: `'utf-8' codec can't decode byte 0x97` error
+
+- **Binary File Detection**
+  - New method: `_is_likely_binary()` detects binary files
+  - Automatically skips binary files during obfuscation
+  - Prevents processing corrupted/non-text smali files
+
+- **Flutter Framework Skipping**
+  - Extended `_should_skip_obfuscation()` with Flutter patterns:
+    - `io/flutter/embedding/`
+    - `io/flutter/app/`
+    - `io/flutter/plugin/`
+    - `io/flutter/view/`
+    - `com/facebook/hermes/` (React Native)
+    - `kotlinx/` (Kotlin libraries)
+
+- **Comprehensive Unit Tests** ⭐ NEW
+  - `tests/test_flutter_support.py` - 24 tests for Flutter support
+  - `tests/test_config.py` - 16 tests for configuration management
+  - `tests/test_injector_core.py` - 10 tests for core injection
+  - `tests/test_version.py` - 13 tests for version management
+  - **Total: 63 comprehensive tests**
+
+### Changed
+
+- **Centralized Version Management** ⭐ NEW
+  - Created `noia_aegis/__version__.py` as single source of truth
+  - Updated `setup.py`, `cli.py`, `__init__.py` to import from `__version__.py`
+  - Version now only needs to be changed in ONE file
+
+- `noia_aegis/core/injector.py`:
+  - All file read operations now use safe encoding fallback
+  - Updated: `_obfuscate_all_strings()`, `_inject_to_application()`,
+    `_inject_or_create_oncreate()`, `_find_application_class()`, `_find_activities()`
+  - Added verbose logging for non-UTF-8 encodings
+  - Flutter detection integrated into `analyze()` method
+
+- `noia_aegis/core/config.py`:
+  - Added `compatibility` section to DEFAULT_CONFIG
+
+- `noia_aegis/cli.py`:
+  - All init templates now include `compatibility` section
+  - Updated production, debug, and default templates
+
+- `.aegis.yml`:
+  - Added `compatibility` section with `react_native`, `flutter`, `native_android` flags
+
+- `.gitignore`:
+  - Improved to keep `.aegis.yml` template while ignoring user configs
+  - Removed `signing-config.yml`, `aegis.toml`, `.env` from tracking
+
+- `README.md`:
+  - Added "Flutter Support" section with usage examples
+  - Added troubleshooting for UTF-8 encoding errors
+  - Updated features list to include Flutter and Native Android
+
+### Fixed
+
+- **Critical:** UTF-8 decoding errors when processing Flutter APKs
+- File reading failures with non-UTF-8 encoded smali files
+- Binary file processing that caused crashes
+- Missing framework detection for Flutter apps
+
+### Technical Details
+
+- **Supported Encodings**: UTF-8, Latin-1, ISO-8859-1, Windows-1252
+- **Fallback Strategy**: Graceful degradation with error ignore mode
+- **Binary Detection**: Null byte check + printable character ratio (< 70%)
+- **Framework Compatibility**: React Native, Flutter, Native Android
+
+### Migration
+
+No breaking changes! Update to v1.4.0 and Flutter APKs will work automatically:
+
+```bash
+git pull
+pip install -e .
+aegis protect flutter-app.yml  # Just works! ✅
+
+# Version now centralized - update only __version__.py!
+```
+
+### Known Limitations
+
+- Flutter engine (C++ code) is not obfuscated
+- Platform channels are preserved for functionality
+- Native plugins (.so files) are not modified
+
+---
+
 ## [1.3.0] - 2025-01-XX
 
 ### 🔐 String Obfuscation

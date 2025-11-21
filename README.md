@@ -16,9 +16,11 @@ Named after Noia, protected with love 💖
 - 🖥️ **Emulator Detection** - Prevent running on emulators
 - 🐛 **Debug Detection** - Block debuggers
 - ⚙️ **Developer Options** Detection - Detect USB debugging
-- 🔒 **String Obfuscation** - 🆕 Protect API keys, tokens, URLs (v1.3.0)
+- 🔒 **String Obfuscation** - Protect API keys, tokens, URLs (v1.3.0)
 - 🔑 **Production Signing** - Keep your original APK signature
 - ⚛️ **React Native Support** - Works seamlessly with RN apps
+- 🦋 **Flutter Support** - 🆕 Full compatibility with Flutter apps (v1.3.1)
+- 📱 **Native Android** - Works with pure Java/Kotlin apps
 - 📝 **Easy Configuration** - Simple YAML config files
 - 🛠️ **Auto-Download Tools** - No manual setup needed (v1.2.0)
 
@@ -206,6 +208,72 @@ Protected APK (Same Signature!)
 
 ---
 
+## 🦋 Flutter Support
+
+**New in v1.3.1:** Full Flutter framework support with automatic detection and encoding fallback!
+
+### Automatic Flutter Detection
+
+Noia Aegis automatically detects Flutter apps by checking for:
+- `io.flutter.embedding.android.FlutterActivity`
+- Flutter framework paths (`io/flutter/`)
+- `libflutter.so` native library
+- `flutter_assets` directory
+
+### Encoding Compatibility
+
+Flutter APKs may contain files with different character encodings. Noia Aegis now:
+- ✅ Tries multiple encodings (UTF-8, Latin-1, CP1252, ISO-8859-1)
+- ✅ Gracefully handles encoding errors
+- ✅ Skips binary files automatically
+- ✅ Logs encoding issues in verbose mode
+
+### Flutter Framework Protection
+
+The following Flutter framework files are automatically skipped during obfuscation:
+- `io/flutter/embedding/` - Flutter embedding engine
+- `io/flutter/app/` - Flutter app framework
+- `io/flutter/plugin/` - Flutter plugins
+- `io/flutter/view/` - Flutter views
+
+### Usage with Flutter
+
+```bash
+# Same as any other APK!
+aegis protect flutter-config.yml
+```
+
+Example config:
+```yaml
+apk:
+  input: "build/app/outputs/flutter-apk/app-release.apk"
+  output: "app-flutter-protected.apk"
+
+signing:
+  use_custom: true
+  keystore: "./upload-keystore.jks"
+  keystore_password: "env:KEYSTORE_PASSWORD"
+  key_alias: "upload"
+  key_password: "env:KEY_PASSWORD"
+
+shields:
+  root_detection: true
+  emulator_detection: true
+  debug_detection: true
+  developer_options: true
+
+obfuscation:
+  enable: true  # Works with Flutter!
+```
+
+### Known Limitations
+
+- Flutter engine code (C++) is not obfuscated (only Dart/Java layer)
+- Platform channel implementations are preserved
+- Native plugins are not modified
+
+---
+
 ## 📋 Configuration Templates
 
 ### Production Config
@@ -281,6 +349,20 @@ signing:
 ```bash
 export ANDROID_HOME=/path/to/Android/Sdk  # Linux/Mac
 set ANDROID_HOME=C:\Android\Sdk           # Windows
+```
+
+### UTF-8 Encoding Error (Flutter)
+
+**Problem:** `'utf-8' codec can't decode byte 0x97 in position 15`
+
+**Solution (v1.3.1+):** This is automatically handled! Update to v1.3.1+ for Flutter support with:
+- Multi-encoding fallback (UTF-8 → Latin-1 → CP1252 → ISO-8859-1)
+- Binary file detection
+- Flutter framework file skipping
+
+If still experiencing issues, enable verbose mode:
+```bash
+aegis protect config.yml --verbose
 ```
 
 ---

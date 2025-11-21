@@ -31,12 +31,21 @@ class AegisInjector:
     def analyze(self):
         """Analyze APK structure"""
         is_react_native = self._is_react_native()
+        is_flutter = self._is_flutter()
         app_class = self._find_application_class()
         activities = self._find_activities()
         main_activity = self._find_main_activity()
-        
+
+        # Determine app type
+        if is_flutter:
+            app_type = 'Flutter'
+        elif is_react_native:
+            app_type = 'React Native'
+        else:
+            app_type = 'Native Android'
+
         return {
-            'app_type': 'React Native' if is_react_native else 'Native Android',
+            'app_type': app_type,
             'has_application': app_class is not None,
             'activity_count': len(activities),
             'activities': [str(a.relative_to(self.work_dir)) for a in activities],
@@ -105,27 +114,36 @@ class AegisInjector:
             # Skip files that shouldn't be obfuscated
             if self._should_skip_obfuscation(smali_file):
                 continue
-            
+
             try:
-                # Read smali file
-                with open(smali_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
+                # Read smali file with encoding fallback
+                content, encoding = self._read_smali_file_safe(smali_file)
+
+                if content is None:
+                    if self.verbose:
+                        print(f"     ⚠️  Skipping unreadable file: {smali_file.name}")
+                    continue
+
+                # Log non-UTF-8 encoding if verbose
+                if self.verbose and encoding != 'utf-8':
+                    rel_path = smali_file.relative_to(self.work_dir)
+                    print(f"     ℹ️  {rel_path}: using {encoding} encoding")
+
                 # Auto-detect and replace sensitive strings
                 modified, count = self.string_replacer.replace_in_smali(content)
-                
+
                 # Write back if modified
                 if count > 0:
                     with open(smali_file, 'w', encoding='utf-8') as f:
                         f.write(modified)
-                    
+
                     total_obfuscated += count
                     files_modified += 1
-                    
+
                     if self.verbose:
                         rel_path = smali_file.relative_to(self.work_dir)
                         print(f"     ✓ {rel_path}: {count} strings")
-            
+
             except Exception as e:
                 if self.verbose:
                     print(f"     ⚠️  Failed to process {smali_file.name}: {e}")
@@ -139,34 +157,59 @@ class AegisInjector:
     def _should_skip_obfuscation(self, smali_file: Path) -> bool:
         """
         Check if file should be skipped for obfuscation
-        
+
         Skip:
         - Noia Aegis own classes
         - Android framework classes
         - AndroidX classes
         - Google framework classes
+        - React Native framework classes
+        - Flutter framework classes
         """
         file_path = str(smali_file)
-        
+
         # Skip our own classes
         if 'com/noiaegis' in file_path:
             return True
-        
+
+        # Skip binary or corrupted files
+        if self._is_likely_binary(smali_file):
+            if self.verbose:
+                print(f"     ⚠️  Skipping binary file: {smali_file.name}")
+            return True
+
         # Skip framework classes
         skip_patterns = [
+            # Android framework
             'android/',
             'androidx/',
             'com/google/android/',
-            'com/facebook/react/',  # React Native framework
+
+            # React Native framework
+            'com/facebook/react/',
+            'com/facebook/hermes/',
+            'com/facebook/jni/',
+
+            # Flutter framework
+            'io/flutter/',
+            'io/flutter/embedding/',
+            'io/flutter/app/',
+            'io/flutter/plugin/',
+            'io/flutter/plugins/',
+            'io/flutter/view/',
+            'io/flutter/util/',
+
+            # Java/Kotlin standard libraries
             'java/',
             'javax/',
             'kotlin/',
+            'kotlinx/',
         ]
-        
+
         for pattern in skip_patterns:
             if pattern in file_path:
                 return True
-        
+
         return False
     
     def _get_enabled_shields(self):
@@ -317,37 +360,45 @@ class AegisInjector:
 
     def _inject_to_application(self, app_file):
         """Inject to Application.onCreate()"""
-        with open(app_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
+        content, encoding = self._read_smali_file_safe(app_file)
+
+        if content is None:
+            if self.verbose:
+                print(f"     ⚠️  Cannot read Application file: {app_file.name}")
+            return False
+
         if "AEGIS INJECTED" in content:
             return False
-        
+
         pattern = r'(\.method\s+public\s+onCreate\(\)V\s*\.locals\s+\d+)'
         injection = '\n    # AEGIS INJECTED\n    invoke-static {p0}, Lcom/noiaegis/AegisCore;->protect(Landroid/content/Context;)V\n'
-        
+
         if re.search(pattern, content):
             modified = re.sub(pattern, r'\1' + injection, content, count=1)
             with open(app_file, 'w', encoding='utf-8') as f:
                 f.write(modified)
             return True
-        
+
         return False
     
     def _inject_or_create_oncreate(self, activity_file):
         """Inject or create onCreate in MainActivity"""
-        with open(activity_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
+        content, _ = self._read_smali_file_safe(activity_file)
+
+        if content is None:
+            if self.verbose:
+                print(f"     ⚠️  Cannot read Activity file: {activity_file.name}")
+            return False
+
         if "AEGIS INJECTED" in content:
             return False
-        
+
         has_oncreate = bool(re.search(r'\.method.*onCreate\(Landroid/os/Bundle;\)V', content))
-        
+
         if has_oncreate:
             pattern = r'(\.method\s+(?:public|protected)\s+onCreate\(Landroid/os/Bundle;\)V\s*\.locals\s+\d+)'
             injection = '\n    # AEGIS INJECTED\n    invoke-static {p0}, Lcom/noiaegis/AegisCore;->protect(Landroid/content/Context;)V\n'
-            
+
             modified = re.sub(pattern, r'\1' + injection, content, count=1)
             with open(activity_file, 'w', encoding='utf-8') as f:
                 f.write(modified)
@@ -356,9 +407,9 @@ class AegisInjector:
             super_match = re.search(r'\.super\s+(L[^;]+;)', content)
             if not super_match:
                 return False
-            
+
             super_class = super_match.group(1)
-            
+
             new_method = f'''
 
 # AEGIS INJECTED
@@ -371,33 +422,145 @@ class AegisInjector:
     return-void
 .end method
 '''
-            
+
             pattern = r'(\.super\s+' + re.escape(super_class) + ')'
             modified = re.sub(pattern, r'\1' + new_method, content, count=1)
-            
+
             with open(activity_file, 'w', encoding='utf-8') as f:
                 f.write(modified)
             return True
-        
+
         return False
     
     def _is_react_native(self):
         """Check if React Native app"""
         react_files = list(self.smali_dir.rglob("*ReactActivity.smali"))
         return len(react_files) > 0
+
+    def _is_flutter(self):
+        """
+        Check if Flutter app
+
+        Flutter apps can be detected by:
+        - io/flutter/embedding classes
+        - libflutter.so in lib/ folder
+        - flutter_assets in assets/
+        """
+        # Check for Flutter embedding classes
+        flutter_embedding = list(self.smali_dir.rglob("*FlutterActivity*.smali"))
+        if flutter_embedding:
+            return True
+
+        # Check for Flutter framework paths
+        flutter_paths = [
+            "io/flutter/embedding",
+            "io/flutter/app",
+            "io/flutter/plugin"
+        ]
+
+        for pattern in flutter_paths:
+            flutter_files = list(self.smali_dir.rglob(f"{pattern}/*.smali"))
+            if flutter_files:
+                return True
+
+        # Check for libflutter.so
+        lib_dir = self.work_dir / "lib"
+        if lib_dir.exists():
+            flutter_libs = list(lib_dir.rglob("libflutter.so"))
+            if flutter_libs:
+                return True
+
+        # Check for flutter_assets
+        assets_dir = self.work_dir / "assets"
+        if assets_dir.exists() and (assets_dir / "flutter_assets").exists():
+            return True
+
+        return False
+
+    def _read_smali_file_safe(self, file_path):
+        """
+        Read smali file with encoding fallback
+
+        Tries multiple encodings to handle files with different character sets:
+        1. UTF-8 (default)
+        2. Latin-1 / ISO-8859-1
+        3. Windows-1252 (CP1252)
+        4. UTF-8 with error ignore (last resort)
+
+        Args:
+            file_path: Path to smali file
+
+        Returns:
+            Tuple of (content: str, encoding: str) or (None, None) if all fail
+        """
+        encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+
+        for encoding in encodings:
+            try:
+                with open(file_path, 'r', encoding=encoding) as f:
+                    content = f.read()
+                return content, encoding
+            except (UnicodeDecodeError, LookupError):
+                continue
+
+        # Last resort: ignore errors
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+            return content, 'utf-8-ignore'
+        except Exception as e:
+            if self.verbose:
+                print(f"     ⚠️  Cannot read file {file_path.name}: {e}")
+            return None, None
+
+    def _is_likely_binary(self, file_path, sample_size=8192):
+        """
+        Check if file is likely binary by checking for null bytes and
+        non-printable characters
+
+        Args:
+            file_path: Path to file
+            sample_size: Number of bytes to sample (default 8KB)
+
+        Returns:
+            True if file appears to be binary
+        """
+        try:
+            with open(file_path, 'rb') as f:
+                chunk = f.read(sample_size)
+
+            # Check for null bytes (strong indicator of binary)
+            if b'\x00' in chunk:
+                return True
+
+            # Check ratio of non-printable characters
+            if chunk:
+                # Count printable ASCII characters (32-126) plus common whitespace
+                printable = sum(1 for byte in chunk if 32 <= byte <= 126 or byte in (9, 10, 13))
+                ratio = printable / len(chunk)
+
+                # If less than 70% printable, likely binary
+                return ratio < 0.7
+
+            return False
+        except Exception:
+            # If we can't read it, assume it's binary
+            return True
     
     def _find_application_class(self):
         """Find Application class"""
         for smali_file in self.smali_dir.rglob("*Application.smali"):
             if "com/facebook/react" in str(smali_file):
                 continue
-            
-            with open(smali_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
+
+            content, _ = self._read_smali_file_safe(smali_file)
+
+            if content is None:
+                continue
+
             if re.search(r'\.super\s+L(?:android/app/Application|com/facebook/react/ReactApplication|androidx/multidex/MultiDexApplication);', content):
                 return smali_file
-        
+
         return None
     
     def _find_main_activity(self):
@@ -411,14 +574,16 @@ class AegisInjector:
     def _find_activities(self):
         """Find all Activity classes"""
         activities = []
-        
+
         for smali_file in self.smali_dir.rglob("*.smali"):
-            with open(smali_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
+            content, _ = self._read_smali_file_safe(smali_file)
+
+            if content is None:
+                continue
+
             if re.search(r'\.super\s+L(?:android/app/Activity|androidx/appcompat/app/AppCompatActivity|com/facebook/react/ReactActivity);', content):
                 activities.append(smali_file)
-        
+
         return activities
     
     def _get_package_name(self):

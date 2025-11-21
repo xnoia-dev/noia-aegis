@@ -17,6 +17,11 @@ class AegisConfig:
         'obfuscation': {
             'enable': True
         },
+        'compatibility': {
+            'react_native': True,
+            'flutter': True,
+            'native_android': True,
+        },
         'behavior': {
             'show_toast': True,
             'exit_on_threat': True,

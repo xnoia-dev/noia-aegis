@@ -10,10 +10,9 @@ from datetime import datetime
 import os
 import getpass
 from noia_aegis.core.env_config import EnvConfig
+from noia_aegis.__version__ import __version__
 
 init(autoreset=True)
-
-__version__ = '1.3.0'
 
 LOGO = f"""{Fore.CYAN}
     _   __      _           ___                _    
@@ -695,7 +694,12 @@ shields:
 
 obfuscation:
   enable: true
-  
+
+compatibility:
+  react_native: true    # Support React Native apps
+  flutter: true         # Support Flutter apps (v1.3.1+)
+  native_android: true  # Support native Java/Kotlin apps
+
 behavior:
   show_toast: true
   exit_on_threat: true
@@ -727,6 +731,14 @@ shields:
   debug_detection: false     # Allow debugging
   developer_options: false   # Allow dev options
 
+obfuscation:
+  enable: false  # Disable for easier debugging
+
+compatibility:
+  react_native: true    # Support React Native apps
+  flutter: true         # Support Flutter apps (v1.3.1+)
+  native_android: true  # Support native Java/Kotlin apps
+
 behavior:
   show_toast: true
   exit_on_threat: false  # Don't exit, just warn
@@ -753,13 +765,13 @@ apk:
 signing:
   # Set to true for production, false for debug
   use_custom: true
-  
+
   # Keystore configuration (required if use_custom: true)
   keystore: "your-release.keystore"
   keystore_password: "your_password"
   key_alias: "your_alias"
   key_password: "your_password"
-  
+
   # Recommended: Use environment variables for security
   # keystore_password: "env:AEGIS_KS_PASS"
   # key_password: "env:AEGIS_KEY_PASS"
@@ -773,6 +785,11 @@ shields:
 
 obfuscation:
   enable: true
+
+compatibility:
+  react_native: true    # Support React Native apps
+  flutter: true         # Support Flutter apps (v1.3.1+)
+  native_android: true  # Support native Java/Kotlin apps
 
 behavior:
   show_toast: true

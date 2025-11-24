@@ -475,38 +475,89 @@ def protect(config_file, no_logo):
 def scan(apk_path):
     """
     Scan APK structure without injection
-    
+
     Example:
         aegis scan app.apk
     """
     try:
+        # Load environment variables from .env
+        env_config = EnvConfig()
+
         click.echo(f"\n{Fore.CYAN}🔍 Scanning: {apk_path}{Style.RESET_ALL}\n")
-        
+
         from noia_aegis.core.processor import APKProcessor
         from noia_aegis.core.injector import AegisInjector
-        
+        import subprocess
+
         processor = APKProcessor(apk_path)
         work_dir = processor.decompile()
-        
+
         injector = AegisInjector(work_dir)
         analysis = injector.analyze()
-        
+
         click.echo(f"{Fore.CYAN}Results:{Style.RESET_ALL}")
         click.echo(f"  • Type: {analysis['app_type']}")
         click.echo(f"  • Package: {analysis.get('package', 'Unknown')}")
         click.echo(f"  • Activities: {analysis['activity_count']}")
         click.echo(f"  • Application Class: {'Yes' if analysis['has_application'] else 'No'}")
-        
+
+        # Get signature information
+        try:
+            click.echo(f"\n{Fore.CYAN}Signature Information:{Style.RESET_ALL}")
+
+            # Get apksigner path from environment or use default
+            apksigner_cmd = os.getenv('APKSIGNER_PATH', 'apksigner')
+
+            result = subprocess.run(
+                [apksigner_cmd, 'verify', '--print-certs', '--verbose', apk_path],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            if result.returncode == 0:
+                output = result.stdout
+
+                # Extract key information
+                if 'Signer #1 certificate DN:' in output:
+                    for line in output.split('\n'):
+                        if 'Signer #1 certificate DN:' in line:
+                            dn = line.split(':', 1)[1].strip()
+                            click.echo(f"  • DN: {dn}")
+                        elif 'Signer #1 certificate SHA-256 digest:' in line:
+                            sha256 = line.split(':', 1)[1].strip()
+                            click.echo(f"  • SHA-256: {sha256}")
+                        elif 'Signer #1 certificate SHA-1 digest:' in line:
+                            sha1 = line.split(':', 1)[1].strip()
+                            click.echo(f"  • SHA-1: {sha1}")
+                        elif 'Signer #1 certificate MD5 digest:' in line:
+                            md5 = line.split(':', 1)[1].strip()
+                            click.echo(f"  • MD5: {md5}")
+
+                # Check if it's debug signed
+                if 'CN=Android Debug' in output:
+                    click.echo(f"  • {Fore.YELLOW}Signing Type: Debug (Android Debug Key){Style.RESET_ALL}")
+                else:
+                    click.echo(f"  • {Fore.GREEN}Signing Type: Production{Style.RESET_ALL}")
+            else:
+                click.echo(f"  • {Fore.RED}Could not verify signature{Style.RESET_ALL}")
+        except FileNotFoundError:
+            click.echo(f"  • {Fore.YELLOW}apksigner not found (install Android SDK build-tools){Style.RESET_ALL}")
+        except subprocess.TimeoutExpired:
+            click.echo(f"  • {Fore.YELLOW}Signature verification timed out{Style.RESET_ALL}")
+        except Exception as e:
+            click.echo(f"  • {Fore.YELLOW}Error reading signature: {str(e)}{Style.RESET_ALL}")
+
         if analysis['activities']:
             click.echo(f"\n{Fore.CYAN}Activities:{Style.RESET_ALL}")
             for act in analysis['activities'][:5]:
                 click.echo(f"  • {act}")
             if len(analysis['activities']) > 5:
                 click.echo(f"  ... and {len(analysis['activities']) - 5} more")
-        
+
         processor.cleanup()
         click.echo(f"\n{Fore.GREEN}✓ Scan complete{Style.RESET_ALL}\n")
-        
+
     except Exception as e:
         click.echo(f"\n{Fore.RED}❌ Error: {str(e)}{Style.RESET_ALL}\n")
         sys.exit(1)

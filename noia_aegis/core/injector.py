@@ -269,8 +269,21 @@ class AegisInjector:
         header = """.class public Lcom/noiaegis/AegisCore;
     .super Ljava/lang/Object;
 
+    # Static flag to ensure we only run protection once
+    .field private static hasRun:Z
+
     .method public static protect(Landroid/content/Context;)V
-        .locals 3
+        .locals 5
+
+        # Check if already executed - if true, skip
+        sget-boolean v0, Lcom/noiaegis/AegisCore;->hasRun:Z
+        if-eqz v0, :not_executed_yet
+        return-void
+        :not_executed_yet
+
+        # Mark as executed
+        const/4 v0, 0x1
+        sput-boolean v0, Lcom/noiaegis/AegisCore;->hasRun:Z
 
     """
         
@@ -330,11 +343,28 @@ class AegisInjector:
     
     def _generate_check_code(self, shield_class, method, message, next_label, label=None, use_context=False):
         """Generate smali code for a shield check"""
-        exit_behavior = """
-        const/4 v0, 0x0
-        invoke-static {v0}, Ljava/lang/System;->exit(I)V
+        # Create unique labels for each check
+        unique_suffix = f"_{label}" if label else ""
+
+        exit_behavior = f"""
+        # Wait for toast to display (with try-catch for InterruptedException)
+        :try_start{unique_suffix}
+        const-wide/16 v3, 1500
+        invoke-static {{v3, v4}}, Ljava/lang/Thread;->sleep(J)V
+        :try_end{unique_suffix}
+        .catch Ljava/lang/InterruptedException; {{:try_start{unique_suffix} .. :try_end{unique_suffix}}} :catch_interrupt{unique_suffix}
+        goto :after_sleep{unique_suffix}
+        :catch_interrupt{unique_suffix}
+        # Ignore interrupted exception
+        :after_sleep{unique_suffix}
+
+        # Throw RuntimeException to crash the app (most reliable method)
+        new-instance v3, Ljava/lang/RuntimeException;
+        const-string v4, "Security threat detected"
+        invoke-direct {{v3, v4}}, Ljava/lang/RuntimeException;-><init>(Ljava/lang/String;)V
+        throw v3
     """ if self.config.should_exit_on_threat() else ""
-        
+
         show_toast = f"""
         const-string v1, "{message}"
         const/4 v2, 0x1

@@ -1,6 +1,6 @@
 # 🛡️ Noia Aegis
 
-[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/arr-code/noia-aegis)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](https://github.com/arr-code/noia-aegis)
 [![Python](https://img.shields.io/badge/python-3.7+-green.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
@@ -16,13 +16,13 @@ Named after Noia, protected with love 💖
 - 🖥️ **Emulator Detection** - Prevent running on emulators
 - 🐛 **Debug Detection** - Block debuggers
 - ⚙️ **Developer Options** Detection - Detect USB debugging
-- 🔒 **String Obfuscation** - Protect API keys, tokens, URLs (v1.3.0)
+- 🔒 **String Obfuscation** - Protect API keys, tokens, URLs
 - 🔑 **Production Signing** - Keep your original APK signature
 - ⚛️ **React Native Support** - Works seamlessly with RN apps
-- 🦋 **Flutter Support** - 🆕 Full compatibility with Flutter apps (v1.3.1)
+- 🦋 **Flutter Support** - 🆕 Full compatibility with Flutter apps
 - 📱 **Native Android** - Works with pure Java/Kotlin apps
 - 📝 **Easy Configuration** - Simple YAML config files
-- 🛠️ **Auto-Download Tools** - No manual setup needed (v1.2.0)
+- 🛠️ **Auto-Download Tools** - No manual setup needed
 
 
 ---
@@ -206,71 +206,33 @@ Sign with Your Keystore (apksigner)
 Protected APK (Same Signature!)
 ```
 
----
+### Shield Architecture
 
-## 🦋 Flutter Support
+Noia Aegis uses **Smali bytecode injection** for runtime protection on Android devices:
 
-**New in v1.3.1:** Full Flutter framework support with automatic detection and encoding fallback!
+#### Shield Components
 
-### Automatic Flutter Detection
+- **`AegisCore.smali`** - Main orchestrator that coordinates all shields
+- **`RootShield.smali`** - Detects rooted devices (su binary, Magisk)
+- **`EmulatorShield.smali`** - Detects Android emulators (Build properties)
+- **`DebugShield.smali`** - Detects debuggers and debuggable apps
+- **`DeveloperShield.smali`** - Detects developer mode (USB debugging)
 
-Noia Aegis automatically detects Flutter apps by checking for:
-- `io.flutter.embedding.android.FlutterActivity`
-- Flutter framework paths (`io/flutter/`)
-- `libflutter.so` native library
-- `flutter_assets` directory
+#### How Shields Work
 
-### Encoding Compatibility
+1. **Shield files** are injected as `.smali` bytecode into your decompiled APK
+2. **Injection point**: `AegisCore.protect()` is called from `Application.onCreate()` or `MainActivity.onCreate()`
+3. **Runtime execution**: Each enabled shield runs its detection checks when app starts
+4. **Threat response**: App shows warning toast and/or exits based on configuration
 
-Flutter APKs may contain files with different character encodings. Noia Aegis now:
-- ✅ Tries multiple encodings (UTF-8, Latin-1, CP1252, ISO-8859-1)
-- ✅ Gracefully handles encoding errors
-- ✅ Skips binary files automatically
-- ✅ Logs encoding issues in verbose mode
+#### Why Smali?
 
-### Flutter Framework Protection
+- ✅ **Direct bytecode injection** - No need to modify source code
+- ✅ **Runtime protection** - Shields run natively on Android (no Python runtime needed)
+- ✅ **Framework agnostic** - Works with Flutter, React Native, and Native Android apps
+- ✅ **Production ready** - Maintains original APK signature for Play Store compatibility
 
-The following Flutter framework files are automatically skipped during obfuscation:
-- `io/flutter/embedding/` - Flutter embedding engine
-- `io/flutter/app/` - Flutter app framework
-- `io/flutter/plugin/` - Flutter plugins
-- `io/flutter/view/` - Flutter views
-
-### Usage with Flutter
-
-```bash
-# Same as any other APK!
-aegis protect flutter-config.yml
-```
-
-Example config:
-```yaml
-apk:
-  input: "build/app/outputs/flutter-apk/app-release.apk"
-  output: "app-flutter-protected.apk"
-
-signing:
-  use_custom: true
-  keystore: "./upload-keystore.jks"
-  keystore_password: "env:KEYSTORE_PASSWORD"
-  key_alias: "upload"
-  key_password: "env:KEY_PASSWORD"
-
-shields:
-  root_detection: true
-  emulator_detection: true
-  debug_detection: true
-  developer_options: true
-
-obfuscation:
-  enable: true  # Works with Flutter!
-```
-
-### Known Limitations
-
-- Flutter engine code (C++) is not obfuscated (only Dart/Java layer)
-- Platform channel implementations are preserved
-- Native plugins are not modified
+**Note:** The `shields/` Python directory contains empty placeholder files. The actual shield implementations are in `templates/smali/` as Smali bytecode files that get injected into your APK.
 
 ---
 
@@ -355,7 +317,7 @@ set ANDROID_HOME=C:\Android\Sdk           # Windows
 
 **Problem:** `'utf-8' codec can't decode byte 0x97 in position 15`
 
-**Solution (v1.3.1+):** This is automatically handled! Update to v1.3.1+ for Flutter support with:
+**Solution (v1.4.0+):** This is automatically handled! Update to v1.4.0+ for Flutter support with:
 - Multi-encoding fallback (UTF-8 → Latin-1 → CP1252 → ISO-8859-1)
 - Binary file detection
 - Flutter framework file skipping
@@ -364,24 +326,6 @@ If still experiencing issues, enable verbose mode:
 ```bash
 aegis protect config.yml --verbose
 ```
-
----
-
-## 🔜 Roadmap
-
-### v1.4 (Planned)
-- Custom obfuscation patterns
-- Obfuscation reporting
-- Selective string obfuscation
-
-### v2.0 (Future)
-- Native Library Obfuscation (.so)
-- SSL Pinning
-- Integrity Verification
-- Screen Protection
-- Anti-Hooking (Frida/Xposed)
-
----
 
 ## 🤝 Contributing
 
